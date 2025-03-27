@@ -74,7 +74,7 @@ Message queues enable asynchronous data exchange between processes. Messages are
 - **Operation Flags (for `msgsnd` and `msgrcv`)**:
   - `IPC_NOWAIT`: Non-blocking; returns -1 immediately if the operation can’t complete (e.g., queue full for `msgsnd`, empty for `msgrcv`).
     - Example: `msgsnd(msqid, &msg, sizeof(msg.mtext), IPC_NOWAIT)`
-  - `0`: Blocking mode (default); waits until the operation can complete.
+  - `!IPC_NOWAIT`(`0`): Blocking mode (default); waits until the operation can complete.
     - Example: `msgsnd(msqid, &msg, sizeof(msg.mtext), 0)`
   - `MSG_NOERROR`: Truncates the message if it exceeds `msgsz` (for both `msgsnd` and `msgrcv`); otherwise, fails with -1.
     - Example: `msgrcv(msqid, &msg, sizeof(msg.mtext), 1, MSG_NOERROR)`
@@ -94,8 +94,8 @@ struct msgbuf { long mtype; char mtext[70]; };
 key_t key = ftok("keyfile", 65);
 int msqid = msgget(key, IPC_CREAT | 0666); // Create queue
 struct msgbuf msg = {1, "Hello"};
-msgsnd(msqid, &msg, sizeof(msg.mtext), 0); // Send message
-msgrcv(msqid, &msg, sizeof(msg.mtext), 1, 0); // Receive message of type 1
+msgsnd(msqid, &msg, sizeof(msg.mtext), !IPC_NOWAI); // Send message
+msgrcv(msqid, &msg, sizeof(msg.mtext), 1, !IPC_NOWAI); // Receive message of type 1
 ```
 
 ### Complete Code Example
@@ -142,7 +142,7 @@ int main() {
         msg.mtype = 1;
         strcpy(msg.mtext, "Hello from child!");
         // Send the message to the queue
-        if (msgsnd(msqid, &msg, sizeof(msg.mtext), 0) == -1) {
+        if (msgsnd(msqid, &msg, sizeof(msg.mtext), !IPC_NOWAI) == -1) {
             perror("msgsnd failed");
             exit(1);
         }
@@ -150,7 +150,7 @@ int main() {
     } else { // Parent: Receiver
         struct msgbuf msg;
         // Receive a message of type 1 from the queue
-        if (msgrcv(msqid, &msg, sizeof(msg.mtext), 1, 0) == -1) {
+        if (msgrcv(msqid, &msg, sizeof(msg.mtext), 1, !IPC_NOWAI) == -1) {
             perror("msgrcv failed");
             exit(1);
         }
@@ -334,7 +334,7 @@ Semaphores are counters that control access to shared resources, acting as locks
 - **Operation Flags (for `semop`)**:
   - `IPC_NOWAIT`: Non-blocking; returns -1 if the operation can’t complete (e.g., decrementing a zero semaphore).
     - Example: `struct sembuf op = {0, -1, IPC_NOWAIT}; semop(semid, &op, 1);`
-  - `0`: Blocking mode (default); waits until the operation can complete.
+  - `!IPC_NOWAIT`(`0`): Blocking mode (default); waits until the operation can complete.
     - Example: `struct sembuf op = {0, -1, 0}; semop(semid, &op, 1);`
   - `SEM_UNDO`: Automatically undoes the operation if the process exits unexpectedly.
     - Example:น`struct sembuf op = {0, 1, SEM_UNDO}; semop(semid, &op, 1);`
@@ -365,7 +365,7 @@ semop(semid, &op, 1);
 
 ### Complete Code Example
 
-Synchronizing a parent and child process:
+Synchronizing a parent and child processes:
 
 ```c
 #include <sys/types.h> // For pid_t
@@ -453,7 +453,7 @@ int main() {
 | `IPC_EXCL`   | ✓                          |                   |               |               | Fails if the object exists (with `IPC_CREAT`).                              |
 | `0666`       | ✓                          |                   |               |               | Sets read/write permissions (octal format).                                 |
 | `IPC_NOWAIT` |                            | ✓                 |               | ✓             | Non-blocking; returns -1 if the operation can’t complete immediately.       |
-| `0`          |                            | ✓                 | ✓             | ✓             | Blocking mode (default) or read/write attachment (`shmat`).                 |
+| `!IPC_NOWAIT`(`0`)          |                            | ✓                 | ✓             | ✓             | Blocking mode (default) or read/write attachment (`shmat`).                 |
 | `MSG_NOERROR`|                            | ✓                 |               |               | Truncates messages if they exceed size limits.                              |
 | `SHM_RDONLY` |                            |                   | ✓             |               | Attaches shared memory as read-only.                                        |
 | `SEM_UNDO`   |                            |                   |               | ✓             | Undoes semaphore operations if the process exits unexpectedly.              |

@@ -37,7 +37,7 @@ int main() {
         msg.mtype = 1;
         strcpy(msg.mtext, "Hello from child!");
         // Send the message to the queue
-        if (msgsnd(msqid, &msg, sizeof(msg.mtext), 0) == -1) {
+        if (msgsnd(msqid, &msg, sizeof(msg.mtext), !IPC_NOWAIT) == -1) {
             perror("msgsnd failed");
             exit(1);
         }
@@ -45,7 +45,7 @@ int main() {
     } else { // Parent: Receiver
         struct msgbuf msg;
         // Receive a message of type 1 from the queue
-        if (msgrcv(msqid, &msg, sizeof(msg.mtext), 1, 0) == -1) {
+        if (msgrcv(msqid, &msg, sizeof(msg.mtext), 1, !IPC_NOWAIT) == -1) {
             perror("msgrcv failed");
             exit(1);
         }
